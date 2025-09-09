@@ -40,3 +40,33 @@ The pipeline uses:
 ---
 
 ## 📂 Repository Structure
+
+pathslide2report/
+├─ data/ # sample or synthetic slides + metadata
+├─ notebooks/
+│ └─ exploratory.ipynb # walkthrough of data ingestion → summary
+├─ src/
+│ ├─ data_loader.py # load images + metadata
+│ ├─ embedder.py # CLIP embeddings
+│ ├─ captioner.py # BLIP captioning
+│ ├─ vectorstore.py # FAISS/ChromaDB retriever
+│ ├─ rag_inference.py # summary generation pipeline
+│ └─ app_streamlit.py # demo app
+├─ tests/ # simple unit tests
+├─ requirements.txt
+├─ README.md
+└─ demo_gifs/ # screenshots or screen recordings
+
+
+
+---
+
+## 📊 Sample Data
+Since real pathology data often contains PHI, this repo includes **synthetic or public-domain samples** (e.g., from [PatchCamelyon](https://github.com/basveeling/pcam) or simulated H&E slides).  
+
+**Metadata format example (`metadata.csv`):**
+```csv
+slide_id,tissue,stain,magnification,accession_date
+slide_0001,Liver,H&E,40x,2025-01-01
+slide_0002,Lung,H&E,20x,2025-01-05
+
