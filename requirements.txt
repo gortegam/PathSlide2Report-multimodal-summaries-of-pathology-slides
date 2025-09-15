@@ -1,0 +1,8 @@
+torch>=2.0
+transformers>=4.35
+streamlit
+pillow
+pandas
+faiss-cpu
+langchain
+openai
