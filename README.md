@@ -41,9 +41,14 @@ The pipeline uses:
 
 ## 📂 Repository Structure
 
+
 ```
 pathslide2report/
 ├─ data/                  # sample or synthetic slides + metadata
+├─ sample_data/           # synthetic demo slide + metadata for recruiters
+│  ├─ sample_slide.png
+│  ├─ metadata.csv
+│  └─ README.md
 ├─ notebooks/
 │  └─ exploratory.ipynb   # walkthrough of data ingestion → summary
 ├─ src/
@@ -54,10 +59,12 @@ pathslide2report/
 │  ├─ rag_inference.py    # summary generation pipeline
 │  └─ app_streamlit.py    # demo app
 ├─ tests/                 # simple unit tests
+├─ demo_gifs/             # screenshots or screen recordings
 ├─ requirements.txt
 ├─ README.md
-└─ demo_gifs/             # screenshots or screen recordings
+└─ LICENSE
 ```
+
 
 
 
