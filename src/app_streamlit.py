@@ -88,12 +88,25 @@ st.title("🧬 PathSlide2Report — Multimodal Gen AI Demo")
 uploaded_file = st.file_uploader("Upload a pathology slide (PNG/JPG/TIF)", type=["png", "jpg", "jpeg", "tif"])
 metadata_input = st.text_area(
     "Enter metadata (key:value pairs, one per line)",
-    value="tissue: liver\nstain: H&E\nmagnification: 40x\naccession_date: 2025-01-01"
+    value=""
 )
 
-if uploaded_file:
+# Fallback: load sample data if no file uploaded
+if not uploaded_file:
+    st.info("No file uploaded — using sample data from `sample_data/`.")
+    try:
+        pil_image = Image.open("sample_data/sample_slide.png").convert("RGB")
+        df = pd.read_csv("sample_data/metadata.csv")
+        metadata_input = "\n".join([f"{col}: {df.iloc[0][col]}" for col in df.columns if col != "slide_id"])
+    except Exception as e:
+        st.error(f"Sample data not found: {e}")
+        pil_image = None
+else:
     pil_image = Image.open(uploaded_file).convert("RGB")
-    st.image(pil_image, caption="Uploaded slide", use_column_width=True)
+
+# Display image + proceed
+if pil_image:
+    st.image(pil_image, caption="Slide image", use_column_width=True)
 
     with st.spinner("Generating image caption..."):
         caption = generate_caption(pil_image)
@@ -111,7 +124,6 @@ if uploaded_file:
             k, v = line.split(":", 1)
             metadata[k.strip()] = v.strip()
 
-    # Build prompt + query LLM
     if st.button("Generate Report"):
         with st.spinner("Querying LLM..."):
             prompt = build_prompt(metadata, caption)
