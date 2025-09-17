@@ -1,6 +1,7 @@
 # 🧬 PathSlide2Report
 **Multimodal Generative AI for Pathology: From Slide + Metadata to Natural-Language Summaries**
-
+![Tests](https://github.com/gortegam/pathslide2report/actions/workflows/tests.yml/badge.svg)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pathslide2report.streamlit.app)
 ---
 
 ## 📌 Overview
