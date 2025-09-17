@@ -41,21 +41,23 @@ The pipeline uses:
 
 ## 📂 Repository Structure
 
+```
 pathslide2report/
-├─ data/ # sample or synthetic slides + metadata
+├─ data/                  # sample or synthetic slides + metadata
 ├─ notebooks/
-│ └─ exploratory.ipynb # walkthrough of data ingestion → summary
+│  └─ exploratory.ipynb   # walkthrough of data ingestion → summary
 ├─ src/
-│ ├─ data_loader.py # load images + metadata
-│ ├─ embedder.py # CLIP embeddings
-│ ├─ captioner.py # BLIP captioning
-│ ├─ vectorstore.py # FAISS/ChromaDB retriever
-│ ├─ rag_inference.py # summary generation pipeline
-│ └─ app_streamlit.py # demo app
-├─ tests/ # simple unit tests
+│  ├─ data_loader.py      # load images + metadata
+│  ├─ embedder.py         # CLIP embeddings
+│  ├─ captioner.py        # BLIP captioning
+│  ├─ vectorstore.py      # FAISS/ChromaDB retriever
+│  ├─ rag_inference.py    # summary generation pipeline
+│  └─ app_streamlit.py    # demo app
+├─ tests/                 # simple unit tests
 ├─ requirements.txt
 ├─ README.md
-└─ demo_gifs/ # screenshots or screen recordings
+└─ demo_gifs/             # screenshots or screen recordings
+```
 
 
 
