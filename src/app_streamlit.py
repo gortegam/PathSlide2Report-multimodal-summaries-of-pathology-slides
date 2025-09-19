@@ -111,48 +111,50 @@ if pil_image:
     if st.button("Generate Report"):
         with st.spinner("Processing slide..."):
             # Add current slide to FAISS index
-            store.add([emb], [metadata])
+            store.add([emb], [{"metadata": metadata, "caption": caption}])
 
             # Retrieve similar slides
             retrieved = store.search(emb, k=3)
             retrieved_text = "\n".join(
-                [f"- {r}" for r in retrieved]
+                [f"- Metadata: {r.get('metadata')}, Caption: {r.get('caption')}" for r in retrieved]
             ) if retrieved else "No similar slides yet."
 
-            # Build RAG prompt
-            prompt = f"""
+            # -------- Mode A: Baseline (no retrieved metadata) --------
+            prompt_A = f"""
 You are a pathology assistant.
-
 The current slide has metadata: {metadata}
-Image caption: {caption}
-
-Here are the most similar past slides:
-{retrieved_text}
+The BLIP caption is: {caption}
 
 Write TWO outputs:
 1. A clinical-style summary (2–4 sentences).
 2. A layperson summary (1–2 sentences).
 """
 
-            output = query_llm(prompt)
+            # -------- Mode B: RAG with Embeddings + Metadata --------
+            prompt_B = f"""
+You are a pathology assistant.
+The current slide has metadata: {metadata}
+The BLIP caption is: {caption}
 
-        # Split summaries
-        clinical_summary = "Not found"
-        lay_summary = "Not found"
-        if "Clinical" in output or "clinical" in output.lower():
-            parts = output.split("2.")
-            if len(parts) == 2:
-                clinical_summary = parts[0].replace("1.", "").strip()
-                lay_summary = parts[1].strip()
-        else:
-            clinical_summary = output
+Here are similar slides retrieved by embedding search:
+{retrieved_text}
 
-        # Tabs
-        tab1, tab2 = st.tabs(["Clinical Summary", "Lay Summary"])
+Write TWO outputs that integrate BOTH the current slide and the retrieved metadata:
+1. A clinical-style summary (2–4 sentences).
+2. A layperson summary (1–2 sentences).
+"""
+
+            output_A = query_llm(prompt_A)
+            output_B = query_llm(prompt_B)
+
+        # Tabs: Baseline vs RAG
+        tab1, tab2 = st.tabs(["Baseline (No RAG)", "Improved (RAG + Metadata)"])
         with tab1:
-            st.write(clinical_summary)
+            st.subheader("Without Retrieved Metadata")
+            st.write(output_A)
         with tab2:
-            st.write(lay_summary)
+            st.subheader("With Retrieved Metadata (RAG)")
+            st.write(output_B)
 
         # Disclaimer
         st.markdown(
@@ -160,12 +162,12 @@ Write TWO outputs:
             unsafe_allow_html=True
         )
 
-        # Download button
-        report_text = f"Clinical Summary:\n{clinical_summary}\n\nLay Summary:\n{lay_summary}"
+        # Download button (contains both versions)
+        report_text = f"--- Baseline ---\n{output_A}\n\n--- With RAG + Metadata ---\n{output_B}"
         buf = io.BytesIO(report_text.encode("utf-8"))
         st.download_button(
-            label="⬇️ Download Report",
+            label="⬇️ Download Report (Both Versions)",
             data=buf,
-            file_name="pathslide2report_summary.txt",
+            file_name="pathslide2report_comparison.txt",
             mime="text/plain"
         )
