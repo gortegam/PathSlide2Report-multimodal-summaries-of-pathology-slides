@@ -9,6 +9,7 @@ from transformers import (
 import openai
 import os
 import io
+from src.vectorstore import FaissStore
 
 # --------------------------
 # Setup models
@@ -32,6 +33,9 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 blip_model = blip_model.to(device)
 clip_model = clip_model.to(device)
 
+# Initialize FAISS vector store
+store = FaissStore(dim=512)
+
 # --------------------------
 # Helper functions
 # --------------------------
@@ -46,26 +50,6 @@ def embed_image(pil_image):
     with torch.no_grad():
         img_emb = clip_model.get_image_features(**inputs)
     return img_emb.cpu().numpy()
-
-def build_prompt(metadata, caption):
-    meta_str = "\n".join([f"- {k}: {v}" for k, v in metadata.items() if v])
-    prompt = f"""
-You are a pathology assistant. 
-Write TWO outputs:
-
-1. A short **clinical-style summary** (2–4 sentences).
-2. A **layperson summary** (1–2 sentences).
-
-Base them on the metadata and image caption below. 
-Be cautious—if uncertain, say "features suggest..." instead of making a definitive diagnosis.
-
-Metadata:
-{meta_str}
-
-Image caption:
-{caption}
-"""
-    return prompt
 
 def query_llm(prompt, model="gpt-4o-mini", max_tokens=350):
     openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -114,7 +98,7 @@ if pil_image:
     st.write(caption)
 
     with st.spinner("Extracting embeddings..."):
-        _ = embed_image(pil_image)
+        emb = embed_image(pil_image)
     st.success("Image embedding extracted.")
 
     # Parse metadata
@@ -125,15 +109,37 @@ if pil_image:
             metadata[k.strip()] = v.strip()
 
     if st.button("Generate Report"):
-        with st.spinner("Querying LLM..."):
-            prompt = build_prompt(metadata, caption)
+        with st.spinner("Processing slide..."):
+            # Add current slide to FAISS index
+            store.add([emb], [metadata])
+
+            # Retrieve similar slides
+            retrieved = store.search(emb, k=3)
+            retrieved_text = "\n".join(
+                [f"- {r}" for r in retrieved]
+            ) if retrieved else "No similar slides yet."
+
+            # Build RAG prompt
+            prompt = f"""
+You are a pathology assistant.
+
+The current slide has metadata: {metadata}
+Image caption: {caption}
+
+Here are the most similar past slides:
+{retrieved_text}
+
+Write TWO outputs:
+1. A clinical-style summary (2–4 sentences).
+2. A layperson summary (1–2 sentences).
+"""
+
             output = query_llm(prompt)
 
-        # Split summaries (very basic split based on keywords)
+        # Split summaries
         clinical_summary = "Not found"
         lay_summary = "Not found"
         if "Clinical" in output or "clinical" in output.lower():
-            # crude split for demo purposes
             parts = output.split("2.")
             if len(parts) == 2:
                 clinical_summary = parts[0].replace("1.", "").strip()
@@ -141,7 +147,7 @@ if pil_image:
         else:
             clinical_summary = output
 
-        # Tabs for outputs
+        # Tabs
         tab1, tab2 = st.tabs(["Clinical Summary", "Lay Summary"])
         with tab1:
             st.write(clinical_summary)
@@ -163,4 +169,3 @@ if pil_image:
             file_name="pathslide2report_summary.txt",
             mime="text/plain"
         )
-
