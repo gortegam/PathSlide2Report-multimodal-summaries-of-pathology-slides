@@ -1,5 +1,3 @@
-# src/app_streamlit.py
-
 import streamlit as st
 from PIL import Image
 import pandas as pd
@@ -10,6 +8,7 @@ from transformers import (
 )
 import openai
 import os
+import io
 
 # --------------------------
 # Setup models
@@ -52,8 +51,12 @@ def build_prompt(metadata, caption):
     meta_str = "\n".join([f"- {k}: {v}" for k, v in metadata.items() if v])
     prompt = f"""
 You are a pathology assistant. 
-Write a short clinical-style summary (2–4 sentences) and a layperson summary (1–2 sentences) 
-based on the metadata and image caption below. 
+Write TWO outputs:
+
+1. A short **clinical-style summary** (2–4 sentences).
+2. A **layperson summary** (1–2 sentences).
+
+Base them on the metadata and image caption below. 
 Be cautious—if uncertain, say "features suggest..." instead of making a definitive diagnosis.
 
 Metadata:
@@ -61,12 +64,10 @@ Metadata:
 
 Image caption:
 {caption}
-
-Summaries:
 """
     return prompt
 
-def query_llm(prompt, model="gpt-4o-mini", max_tokens=250):
+def query_llm(prompt, model="gpt-4o-mini", max_tokens=350):
     openai.api_key = os.getenv("OPENAI_API_KEY")
     if not openai.api_key:
         return "⚠️ Please set OPENAI_API_KEY environment variable."
@@ -91,7 +92,7 @@ metadata_input = st.text_area(
     value=""
 )
 
-# Fallback: load sample data if no file uploaded
+# Fallback: use sample_data if nothing uploaded
 if not uploaded_file:
     st.info("No file uploaded — using sample data from `sample_data/`.")
     try:
@@ -104,7 +105,6 @@ if not uploaded_file:
 else:
     pil_image = Image.open(uploaded_file).convert("RGB")
 
-# Display image + proceed
 if pil_image:
     st.image(pil_image, caption="Slide image", use_column_width=True)
 
@@ -127,6 +127,40 @@ if pil_image:
     if st.button("Generate Report"):
         with st.spinner("Querying LLM..."):
             prompt = build_prompt(metadata, caption)
-            summary = query_llm(prompt)
-        st.subheader("📝 Generated Report")
-        st.write(summary)
+            output = query_llm(prompt)
+
+        # Split summaries (very basic split based on keywords)
+        clinical_summary = "Not found"
+        lay_summary = "Not found"
+        if "Clinical" in output or "clinical" in output.lower():
+            # crude split for demo purposes
+            parts = output.split("2.")
+            if len(parts) == 2:
+                clinical_summary = parts[0].replace("1.", "").strip()
+                lay_summary = parts[1].strip()
+        else:
+            clinical_summary = output
+
+        # Tabs for outputs
+        tab1, tab2 = st.tabs(["Clinical Summary", "Lay Summary"])
+        with tab1:
+            st.write(clinical_summary)
+        with tab2:
+            st.write(lay_summary)
+
+        # Disclaimer
+        st.markdown(
+            "<small>⚠️ This report is AI-generated for demonstration purposes only. Not for clinical use.</small>",
+            unsafe_allow_html=True
+        )
+
+        # Download button
+        report_text = f"Clinical Summary:\n{clinical_summary}\n\nLay Summary:\n{lay_summary}"
+        buf = io.BytesIO(report_text.encode("utf-8"))
+        st.download_button(
+            label="⬇️ Download Report",
+            data=buf,
+            file_name="pathslide2report_summary.txt",
+            mime="text/plain"
+        )
+
