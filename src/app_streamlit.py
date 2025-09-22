@@ -9,6 +9,8 @@ from transformers import (
 import openai
 import os
 import io
+import csv
+from datetime import datetime
 from src.vectorstore import FaissStore
 
 # --------------------------
@@ -147,7 +149,9 @@ Write TWO outputs that integrate BOTH the current slide and the retrieved metada
             output_A = query_llm(prompt_A)
             output_B = query_llm(prompt_B)
 
-        # Tabs: Baseline vs RAG
+        # ---------------------------
+        # UI Output
+        # ---------------------------
         tab1, tab2 = st.tabs(["Baseline (No RAG)", "Improved (RAG + Metadata)"])
         with tab1:
             st.subheader("Without Retrieved Metadata")
@@ -156,13 +160,12 @@ Write TWO outputs that integrate BOTH the current slide and the retrieved metada
             st.subheader("With Retrieved Metadata (RAG)")
             st.write(output_B)
 
-        # Disclaimer
         st.markdown(
             "<small>⚠️ This report is AI-generated for demonstration purposes only. Not for clinical use.</small>",
             unsafe_allow_html=True
         )
 
-        # Download button (contains both versions)
+        # Download both versions
         report_text = f"--- Baseline ---\n{output_A}\n\n--- With RAG + Metadata ---\n{output_B}"
         buf = io.BytesIO(report_text.encode("utf-8"))
         st.download_button(
@@ -171,3 +174,22 @@ Write TWO outputs that integrate BOTH the current slide and the retrieved metada
             file_name="pathslide2report_comparison.txt",
             mime="text/plain"
         )
+
+        # ---------------------------
+        # Save results to log file
+        # ---------------------------
+        log_file = "logs/run_log.csv"
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
+        with open(log_file, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if f.tell() == 0:  # write header if file is empty
+                writer.writerow(["timestamp", "metadata", "caption", "baseline_summary", "rag_summary"])
+            writer.writerow([
+                datetime.now().isoformat(),
+                str(metadata),
+                caption,
+                output_A,
+                output_B
+            ])
+
