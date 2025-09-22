@@ -72,27 +72,33 @@ def query_llm(prompt, model="gpt-4o-mini", max_tokens=350):
 st.set_page_config(page_title="PathSlide2Report", layout="wide")
 st.title("🧬 PathSlide2Report — Multimodal Gen AI Demo")
 
-uploaded_file = st.file_uploader("Upload a pathology slide (PNG/JPG/TIF)", type=["png", "jpg", "jpeg", "tif"])
-metadata_input = st.text_area(
-    "Enter metadata (key:value pairs, one per line)",
-    value=""
-)
+# Try to load TCGA patches metadata
+metadata_csv_path = "data/patches_metadata.csv"
+patches_dir = "data/patches"
 
-# Fallback: use sample_data if nothing uploaded
-if not uploaded_file:
-    st.info("No file uploaded — using sample data from `sample_data/`.")
-    try:
-        pil_image = Image.open("sample_data/sample_slide.png").convert("RGB")
-        df = pd.read_csv("sample_data/metadata.csv")
-        metadata_input = "\n".join([f"{col}: {df.iloc[0][col]}" for col in df.columns if col != "slide_id"])
-    except Exception as e:
-        st.error(f"Sample data not found: {e}")
-        pil_image = None
+if os.path.exists(metadata_csv_path):
+    df_meta = pd.read_csv(metadata_csv_path)
+    patch_choice = st.selectbox(
+        "Select a TCGA patch to analyze:",
+        df_meta["patch_file"].tolist()
+    )
+    patch_path = os.path.join(patches_dir, patch_choice)
+    pil_image = Image.open(patch_path).convert("RGB")
+
+    # Build metadata dict from CSV row
+    row = df_meta[df_meta["patch_file"] == patch_choice].iloc[0].to_dict()
+    metadata = {k: v for k, v in row.items() if k not in ["patch_file"]}
+
 else:
-    pil_image = Image.open(uploaded_file).convert("RGB")
+    st.warning("⚠️ No TCGA patches found. Please run `tcga_preprocess.py` first.")
+    pil_image = None
+    metadata = {}
 
+# --------------------------
+# Main pipeline
+# --------------------------
 if pil_image:
-    st.image(pil_image, caption="Slide image", use_column_width=True)
+    st.image(pil_image, caption=f"Selected patch: {patch_choice}", use_column_width=True)
 
     with st.spinner("Generating image caption..."):
         caption = generate_caption(pil_image)
@@ -103,45 +109,38 @@ if pil_image:
         emb = embed_image(pil_image)
     st.success("Image embedding extracted.")
 
-    # Parse metadata
-    metadata = {}
-    for line in metadata_input.split("\n"):
-        if ":" in line:
-            k, v = line.split(":", 1)
-            metadata[k.strip()] = v.strip()
-
     if st.button("Generate Report"):
-        with st.spinner("Processing slide..."):
-            # Add current slide to FAISS index
+        with st.spinner("Processing patch..."):
+            # Add patch to FAISS index
             store.add([emb], [{"metadata": metadata, "caption": caption}])
 
-            # Retrieve similar slides
+            # Retrieve similar patches
             retrieved = store.search(emb, k=3)
             retrieved_text = "\n".join(
                 [f"- Metadata: {r.get('metadata')}, Caption: {r.get('caption')}" for r in retrieved]
-            ) if retrieved else "No similar slides yet."
+            ) if retrieved else "No similar patches yet."
 
-            # -------- Mode A: Baseline (no retrieved metadata) --------
+            # -------- Mode A: Baseline --------
             prompt_A = f"""
 You are a pathology assistant.
-The current slide has metadata: {metadata}
-The BLIP caption is: {caption}
+Patch metadata: {metadata}
+BLIP caption: {caption}
 
 Write TWO outputs:
 1. A clinical-style summary (2–4 sentences).
 2. A layperson summary (1–2 sentences).
 """
 
-            # -------- Mode B: RAG with Embeddings + Metadata --------
+            # -------- Mode B: RAG + Metadata --------
             prompt_B = f"""
 You are a pathology assistant.
-The current slide has metadata: {metadata}
-The BLIP caption is: {caption}
+Patch metadata: {metadata}
+BLIP caption: {caption}
 
-Here are similar slides retrieved by embedding search:
+Here are similar patches retrieved by embedding search:
 {retrieved_text}
 
-Write TWO outputs that integrate BOTH the current slide and the retrieved metadata:
+Write TWO outputs that integrate BOTH the current patch and retrieved metadata:
 1. A clinical-style summary (2–4 sentences).
 2. A layperson summary (1–2 sentences).
 """
@@ -183,7 +182,7 @@ Write TWO outputs that integrate BOTH the current slide and the retrieved metada
 
         with open(log_file, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            if f.tell() == 0:  # write header if file is empty
+            if f.tell() == 0:
                 writer.writerow(["timestamp", "metadata", "caption", "baseline_summary", "rag_summary"])
             writer.writerow([
                 datetime.now().isoformat(),
