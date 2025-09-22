@@ -1,0 +1,21 @@
+# Handle line endings consistently
+* text=auto eol=lf
+
+# Jupyter notebooks: make diffs human-readable
+*.ipynb diff=jupyternotebook
+
+# Python files: use Python-specific diff driver
+*.py diff=python
+
+# Ensure CSV and TSV are treated as text
+*.csv text
+*.tsv text
+
+# Ignore large binary diffs (images, models)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tif binary
+*.pt binary
+*.bin binary
+*.pkl binary
