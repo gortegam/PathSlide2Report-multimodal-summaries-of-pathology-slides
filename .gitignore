@@ -40,3 +40,7 @@ Thumbs.db
 # IDEs
 .vscode/
 .idea/
+
+# Ignore run logs
+logs/
+
