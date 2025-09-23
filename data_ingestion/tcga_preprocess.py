@@ -3,18 +3,22 @@ import openslide
 import pandas as pd
 from PIL import Image
 
-def tile_wsi(wsi_path, out_dir="tcga_patches", patch_size=512, max_patches=20):
+def extract_slide_metadata(slide):
     """
-    Extract tiles from a TCGA whole-slide image (.svs).
-    
-    Args:
-        wsi_path (str): Path to the .svs file
-        out_dir (str): Directory where patches will be saved
-        patch_size (int): Size of each square patch in pixels
-        max_patches (int): Limit how many patches to extract (for demo purposes)
-    
-    Returns:
-        metadata (list of dicts): Info about each extracted patch
+    Extract metadata from OpenSlide properties (varies by scanner).
+    """
+    props = slide.properties
+    metadata = {
+        "tissue": props.get("tissue", "unknown"),
+        "stain": props.get("aperio.AppMag", "H&E"),  # fallback: most TCGA are H&E
+        "magnification": props.get("aperio.AppMag", "unknown"),
+        "scanner": props.get("aperio.ScanScope ID", "unknown")
+    }
+    return metadata
+
+def tile_wsi(wsi_path, out_dir="data/patches", patch_size=512, max_patches=20):
+    """
+    Extract tiles from a TCGA WSI (.svs) and enrich with metadata.
     """
     os.makedirs(out_dir, exist_ok=True)
 
@@ -24,10 +28,13 @@ def tile_wsi(wsi_path, out_dir="tcga_patches", patch_size=512, max_patches=20):
     width, height = slide.dimensions
     print(f"Slide: {wsi_name}, size = {width}x{height}")
 
-    metadata = []
+    # Extract metadata
+    slide_metadata = extract_slide_metadata(slide)
+
+    metadata_records = []
     count = 0
 
-    for x in range(0, width, patch_size * 50):   # stride of 50 patches, not dense
+    for x in range(0, width, patch_size * 50):   # sparse sampling
         for y in range(0, height, patch_size * 50):
             if count >= max_patches:
                 break
@@ -37,22 +44,25 @@ def tile_wsi(wsi_path, out_dir="tcga_patches", patch_size=512, max_patches=20):
             patch_path = os.path.join(out_dir, patch_filename)
             patch.save(patch_path)
 
-            metadata.append({
+            metadata_records.append({
                 "slide_id": wsi_name,
                 "patch_file": patch_filename,
                 "x": x,
                 "y": y,
                 "patch_size": patch_size,
-                "level": 0
+                "level": 0,
+                "tissue": slide_metadata.get("tissue", "unknown"),
+                "stain": slide_metadata.get("stain", "H&E"),
+                "magnification": slide_metadata.get("magnification", "unknown"),
+                "scanner": slide_metadata.get("scanner", "unknown")
             })
 
             count += 1
 
-    return metadata
+    return metadata_records
 
 if __name__ == "__main__":
-    # Example usage
-    wsi_path = "tcga_data/example_slide.svs"  # replace with a real downloaded file
+    wsi_path = "tcga_data/example_slide.svs"  # replace with your downloaded slide
     patches_dir = "data/patches"
     metadata_csv = "data/patches_metadata.csv"
 
@@ -62,3 +72,4 @@ if __name__ == "__main__":
 
     print(f"Saved {len(df)} patches to {patches_dir}")
     print(f"Metadata CSV: {metadata_csv}")
+
