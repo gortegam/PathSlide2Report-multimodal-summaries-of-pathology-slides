@@ -126,3 +126,9 @@ You’ll get a **clinical-style summary** and a **layperson summary** generated 
 ---
 
 ⚠️ **Note:** This demo uses synthetic data for demonstration only — not real patient data.
+
+## 📊 Evaluation
+We provide two evaluation modes:
+- [evaluation_final.ipynb](notebooks/evaluation_final.ipynb) → Full evaluation with TCGA data
+- [evaluation_demo.ipynb](notebooks/evaluation_demo.ipynb) → Demo mode with synthetic data (instant run, no setup)
+
