@@ -72,7 +72,9 @@ def query_llm(prompt, model="gpt-4o-mini", max_tokens=350):
 st.set_page_config(page_title="PathSlide2Report", layout="wide")
 st.title("🧬 PathSlide2Report — Multimodal Gen AI Demo")
 
-# Try enriched metadata first, then fallback
+# --------------------------
+# Load metadata
+# --------------------------
 metadata_csv_path = None
 if os.path.exists("data/patches_metadata_enriched.csv"):
     metadata_csv_path = "data/patches_metadata_enriched.csv"
@@ -81,14 +83,14 @@ elif os.path.exists("data/patches_metadata.csv"):
     metadata_csv_path = "data/patches_metadata.csv"
     st.warning("⚠️ Using basic metadata only. Run tcga_metadata_fetcher.py to enrich with diagnosis info.")
 else:
-    st.error("❌ No patch metadata found. Please run tcga_preprocess.py (and optionally tcga_metadata_fetcher.py).")
+    st.warning("⚠️ No TCGA patches found. Falling back to sample data.")
 
 patches_dir = "data/patches"
 
 if metadata_csv_path:
     df_meta = pd.read_csv(metadata_csv_path)
     patch_choice = st.selectbox(
-        "Select a TCGA patch to analyze:",
+        "Select a patch to analyze:",
         df_meta["patch_file"].tolist()
     )
     patch_path = os.path.join(patches_dir, patch_choice)
@@ -97,14 +99,26 @@ if metadata_csv_path:
     # Use all metadata fields from CSV row
     row = df_meta[df_meta["patch_file"] == patch_choice].iloc[0].to_dict()
     metadata = {k: v for k, v in row.items() if k != "patch_file"}
+
 else:
-    pil_image, metadata = None, {}
+    # Fallback to sample data
+    sample_img = "data/sample_data/sample_slide.png"
+    sample_meta = "data/sample_data/metadata.csv"
+
+    if os.path.exists(sample_img) and os.path.exists(sample_meta):
+        pil_image = Image.open(sample_img).convert("RGB")
+        df = pd.read_csv(sample_meta)
+        metadata = df.iloc[0].to_dict()
+        st.info("Loaded sample data for demo.")
+    else:
+        pil_image, metadata = None, {}
+        st.error("❌ No data available. Please add either TCGA patches or sample_data.")
 
 # --------------------------
 # Main pipeline
 # --------------------------
 if pil_image:
-    st.image(pil_image, caption=f"Selected patch: {patch_choice}", use_column_width=True)
+    st.image(pil_image, caption="Selected patch", use_column_width=True)
 
     with st.spinner("Generating image caption..."):
         caption = generate_caption(pil_image)
