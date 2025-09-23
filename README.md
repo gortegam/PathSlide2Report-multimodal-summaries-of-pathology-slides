@@ -67,7 +67,7 @@ pathslide2report/
 │  ├─ captioner.py                 # BLIP captioning
 │  ├─ vectorstore.py               # FAISS/ChromaDB retriever
 │  └─ rag_inference.py             # summary generation pipeline
-├─ tests/                          # simple unit tests
+├─ test/                          # simple unit tests
 ├─ logs/                           # run logs saved from Streamlit
 ├─ requirements.txt
 ├─ CONTRIBUTING.md
