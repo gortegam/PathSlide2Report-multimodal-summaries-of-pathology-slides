@@ -72,11 +72,20 @@ def query_llm(prompt, model="gpt-4o-mini", max_tokens=350):
 st.set_page_config(page_title="PathSlide2Report", layout="wide")
 st.title("🧬 PathSlide2Report — Multimodal Gen AI Demo")
 
-# Try to load TCGA patches metadata
-metadata_csv_path = "data/patches_metadata.csv"
+# Try enriched metadata first, then fallback
+metadata_csv_path = None
+if os.path.exists("data/patches_metadata_enriched.csv"):
+    metadata_csv_path = "data/patches_metadata_enriched.csv"
+    st.info("Using enriched metadata (diagnosis, sample type, tissue, etc.).")
+elif os.path.exists("data/patches_metadata.csv"):
+    metadata_csv_path = "data/patches_metadata.csv"
+    st.warning("⚠️ Using basic metadata only. Run tcga_metadata_fetcher.py to enrich with diagnosis info.")
+else:
+    st.error("❌ No patch metadata found. Please run tcga_preprocess.py (and optionally tcga_metadata_fetcher.py).")
+
 patches_dir = "data/patches"
 
-if os.path.exists(metadata_csv_path):
+if metadata_csv_path:
     df_meta = pd.read_csv(metadata_csv_path)
     patch_choice = st.selectbox(
         "Select a TCGA patch to analyze:",
@@ -85,14 +94,11 @@ if os.path.exists(metadata_csv_path):
     patch_path = os.path.join(patches_dir, patch_choice)
     pil_image = Image.open(patch_path).convert("RGB")
 
-    # Build metadata dict from CSV row
+    # Use all metadata fields from CSV row
     row = df_meta[df_meta["patch_file"] == patch_choice].iloc[0].to_dict()
-    metadata = {k: v for k, v in row.items() if k not in ["patch_file"]}
-
+    metadata = {k: v for k, v in row.items() if k != "patch_file"}
 else:
-    st.warning("⚠️ No TCGA patches found. Please run `tcga_preprocess.py` first.")
-    pil_image = None
-    metadata = {}
+    pil_image, metadata = None, {}
 
 # --------------------------
 # Main pipeline
