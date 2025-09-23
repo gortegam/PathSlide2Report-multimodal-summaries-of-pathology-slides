@@ -46,25 +46,35 @@ The pipeline uses:
 
 ```
 pathslide2report/
-├─ data/                  # sample or synthetic slides + metadata
-├─ sample_data/           # synthetic demo slide + metadata for recruiters
-│  ├─ sample_slide.png
-│  ├─ metadata.csv
-│  └─ README.md
+├─ data/
+│  ├─ sample_data/                 # sample slide + metadata for demo fallback
+│  │   ├─ sample_slide.png
+│  │   └─ metadata.csv
+│  ├─ patches/                     # TCGA patches extracted from WSIs
+│  ├─ patches_metadata.csv         # patch metadata (basic)
+│  └─ patches_metadata_enriched.csv# patch metadata enriched with diagnosis
+├─ data_ingestion/
+│  ├─ tcga_downloader.py           # download TCGA WSIs
+│  ├─ tcga_preprocess.py           # tile WSIs into patches + basic metadata
+│  └─ tcga_metadata_fetcher.py     # fetch diagnosis/clinical info from GDC API
 ├─ notebooks/
-│  └─ exploratory.ipynb   # walkthrough of data ingestion → summary
+│  ├─ exploratory.ipynb            # data ingestion → summary walkthrough
+│  └─ evaluation.ipynb             # baseline vs RAG evaluation
 ├─ src/
-│  ├─ data_loader.py      # load images + metadata
-│  ├─ embedder.py         # CLIP embeddings
-│  ├─ captioner.py        # BLIP captioning
-│  ├─ vectorstore.py      # FAISS/ChromaDB retriever
-│  ├─ rag_inference.py    # summary generation pipeline
-│  └─ app_streamlit.py    # demo app
-├─ tests/                 # simple unit tests
-├─ demo_gifs/             # screenshots or screen recordings
+│  ├─ app_streamlit.py             # Streamlit demo app
+│  ├─ data_loader.py               # load images + metadata
+│  ├─ embedder.py                  # CLIP embeddings
+│  ├─ captioner.py                 # BLIP captioning
+│  ├─ vectorstore.py               # FAISS/ChromaDB retriever
+│  └─ rag_inference.py             # summary generation pipeline
+├─ tests/                          # simple unit tests
+├─ logs/                           # run logs saved from Streamlit
 ├─ requirements.txt
+├─ CONTRIBUTING.md
+├─ CODE_OF_CONDUCT.md
+├─ SECURITY.md
 ├─ README.md
-└─ LICENSE
+
 ```
 
 
