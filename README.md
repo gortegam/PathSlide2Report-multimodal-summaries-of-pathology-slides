@@ -79,6 +79,13 @@ pathslide2report/
 
 
 
+## 🔄 Pipeline Overview
+
+The figure below shows how **PathSlide2Report** processes TCGA slides into natural-language reports:
+
+<p align="center">
+  <img src="demo_gifs/pathslide2report_pipeline.png" alt="PathSlide2Report pipeline" width="700"/>
+</p>
 
 ---
 
