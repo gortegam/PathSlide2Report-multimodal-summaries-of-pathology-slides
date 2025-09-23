@@ -1,8 +1,25 @@
-torch>=2.0
-transformers>=4.35
-streamlit
-pillow
-pandas
-faiss-cpu
-langchain
-openai
+# Core
+streamlit>=1.27.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Image handling
+Pillow>=10.0.0
+openslide-python>=1.3.0
+
+# Deep learning
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.35.0
+
+# Vector search
+faiss-cpu>=1.7.4
+
+# API + utilities
+requests>=2.31.0
+openai>=1.0.0
+
+# Development
+pytest>=7.0.0
+jupyter>=1.0.0
+
