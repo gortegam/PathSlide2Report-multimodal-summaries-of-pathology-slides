@@ -11,7 +11,8 @@ import os
 import io
 import csv
 from datetime import datetime
-from src.vectorstore import FaissStore
+from vectorstore import FaissStore
+
 
 # --------------------------
 # Setup models
